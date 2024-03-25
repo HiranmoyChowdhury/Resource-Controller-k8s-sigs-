@@ -1,0 +1,62 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: manager-role
+rules:
+- apiGroups:
+  - targaryen.resource.controller.sigs
+  resources:
+  - bastards
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - targaryen.resource.controller.sigs
+  resources:
+  - bastards/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - targaryen.resource.controller.sigs
+  resources:
+  - bastards/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - targaryen.resource.controller.sigs
+  resources:
+  - deployments
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - targaryen.resource.controller.sigs
+  resources:
+  - deployments/status
+  verbs:
+  - get
+- apiGroups:
+  - targaryen.resource.controller.sigs
+  resources:
+  - services
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch

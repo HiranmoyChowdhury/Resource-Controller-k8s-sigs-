@@ -1,0 +1,31 @@
+# permissions for end users to edit bastards.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: bastard-editor-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: resource-controller-k8s-sigs
+    app.kubernetes.io/part-of: resource-controller-k8s-sigs
+    app.kubernetes.io/managed-by: kustomize
+  name: bastard-editor-role
+rules:
+- apiGroups:
+  - targaryen.resource.controller.sigs
+  resources:
+  - bastards
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - targaryen.resource.controller.sigs
+  resources:
+  - bastards/status
+  verbs:
+  - get

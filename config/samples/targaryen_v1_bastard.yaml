@@ -1,0 +1,12 @@
+apiVersion: targaryen.resource.controller.sigs/v1
+kind: Bastard
+metadata:
+  labels:
+    app.kubernetes.io/name: bastard
+    app.kubernetes.io/instance: bastard-sample
+    app.kubernetes.io/part-of: resource-controller-k8s-sigs
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: resource-controller-k8s-sigs
+  name: bastard-sample
+spec:
+  # TODO(user): Add fields here

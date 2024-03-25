@@ -1,0 +1,13 @@
+apiVersion: targaryen.resource.controller.sigs/v1
+kind: Bastard
+metadata:
+  name: book-bazar-01fghgh
+spec:
+  deletionPolicy: Delete
+  deploymentSpec:
+    replicas: 2
+    name: Daenarys
+    image: hiranmoy36/book-bazar
+    commands: ["/root/binary","start"]
+  serviceSpec:
+    port: 8080
