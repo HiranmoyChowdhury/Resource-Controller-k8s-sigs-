@@ -1,6 +1,6 @@
 package utils
 
-const Kind = "Bastard"
+const Kind = "Syrax"
 const ContainerName = "ros"
 const DefaultServiceType = "NodePort"
 const DefautReplicaCount = 2

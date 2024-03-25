@@ -110,12 +110,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controller.BastardReconciler{
+	if err = (&controller.SyraxReconciler{
 		Client:   mgr.GetClient(),
 		Scheme:   mgr.GetScheme(),
-		Recorder: mgr.GetEventRecorderFor("Bastard-controller"),
+		Recorder: mgr.GetEventRecorderFor("Syrax-controller"),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Bastard")
+		setupLog.Error(err, "unable to create controller", "controller", "Syrax")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder

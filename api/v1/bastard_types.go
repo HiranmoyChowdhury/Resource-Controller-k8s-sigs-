@@ -21,8 +21,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// BastardSpec defines the desired state of Bastard
-type BastardSpec struct {
+// SyraxSpec defines the desired state of Syrax
+type SyraxSpec struct {
 	DeletionPolicy DeletionPolicy    `json:"deletionPolicy,omitempty"`
 	DeploymentSpec DeploymentSpec    `json:"deploymentSpec"`
 	ServiceSpec    ServiceSpec       `json:"serviceSpec,omitempty"`
@@ -51,8 +51,8 @@ type ServiceSpec struct {
 	NodePort    *int32             `json:"NodePort,omitempty"`
 }
 
-// BastardStatus defines the observed state of Bastard
-type BastardStatus struct {
+// SyraxStatus defines the observed state of Syrax
+type SyraxStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 	AvailableReplicas *int32 `json:"availableReplicas"`
@@ -61,24 +61,24 @@ type BastardStatus struct {
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 
-// Bastard is the Schema for the bastards API
-type Bastard struct {
+// Syrax is the Schema for the syraxs API
+type Syrax struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   BastardSpec   `json:"spec,omitempty"`
-	Status BastardStatus `json:"status,omitempty"`
+	Spec   SyraxSpec   `json:"spec,omitempty"`
+	Status SyraxStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 
-// BastardList contains a list of Bastard
-type BastardList struct {
+// SyraxList contains a list of Syrax
+type SyraxList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Bastard `json:"items"`
+	Items           []Syrax `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&Bastard{}, &BastardList{})
+	SchemeBuilder.Register(&Syrax{}, &SyraxList{})
 }

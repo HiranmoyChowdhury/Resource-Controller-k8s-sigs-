@@ -4,20 +4,20 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.14.0
-  name: bastards.targaryen.resource.controller.sigs
+  name: syraxes.targaryen.resource.controller.sigs
 spec:
   group: targaryen.resource.controller.sigs
   names:
-    kind: Bastard
-    listKind: BastardList
-    plural: bastards
-    singular: bastard
+    kind: Syrax
+    listKind: SyraxList
+    plural: syraxes
+    singular: syrax
   scope: Namespaced
   versions:
   - name: v1
     schema:
       openAPIV3Schema:
-        description: Bastard is the Schema for the bastards API
+        description: Syrax is the Schema for the syraxs API
         properties:
           apiVersion:
             description: |-
@@ -37,7 +37,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: BastardSpec defines the desired state of Bastard
+            description: SyraxSpec defines the desired state of Syrax
             properties:
               deletionPolicy:
                 type: string
@@ -83,7 +83,7 @@ spec:
             - deploymentSpec
             type: object
           status:
-            description: BastardStatus defines the observed state of Bastard
+            description: SyraxStatus defines the observed state of Syrax
             properties:
               availableReplicas:
                 description: |-

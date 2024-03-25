@@ -1,7 +1,7 @@
 apiVersion: targaryen.resource.controller.sigs/v1
-kind: Bastard
+kind: Syrax
 metadata:
-  name: book-bazar-01fghgh
+  name: book-bazar-01
 spec:
   deletionPolicy: Delete
   deploymentSpec:

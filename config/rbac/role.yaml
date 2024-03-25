@@ -7,32 +7,6 @@ rules:
 - apiGroups:
   - targaryen.resource.controller.sigs
   resources:
-  - bastards
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - targaryen.resource.controller.sigs
-  resources:
-  - bastards/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - targaryen.resource.controller.sigs
-  resources:
-  - bastards/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - targaryen.resource.controller.sigs
-  resources:
   - deployments
   verbs:
   - create
@@ -60,3 +34,29 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - targaryen.resource.controller.sigs
+  resources:
+  - syraxs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - targaryen.resource.controller.sigs
+  resources:
+  - syraxs/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - targaryen.resource.controller.sigs
+  resources:
+  - syraxs/status
+  verbs:
+  - get
+  - patch
+  - update

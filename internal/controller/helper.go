@@ -8,38 +8,38 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	namespcedname "k8s.io/apimachinery/pkg/types"
-	bastardv1 "resource.controller.sigs/resource-controller-k8s-sigs/api/v1"
+	syraxv1 "resource.controller.sigs/resource-controller-k8s-sigs/api/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"resource.controller.sigs/resource-controller-k8s-sigs/utils"
 )
 
-func (r *BastardReconciler) newDeployment(bastard *bastardv1.Bastard, name string, deployment *appsv1.Deployment) {
+func (r *SyraxReconciler) newDeployment(syrax *syraxv1.Syrax, name string, deployment *appsv1.Deployment) {
 
 	labels := make(map[string]string)
-	for k, v := range bastard.Spec.Labels {
+	for k, v := range syrax.Spec.Labels {
 		labels[k] = v
 	}
 	labels["dracarys"] = "im-now-the-servant-of-the-white-walkers"
-	labels["uid"] = string(bastard.UID)
+	labels["uid"] = string(syrax.UID)
 
 	deployment.Name = name
 
-	deployment.Spec.Replicas = bastard.Spec.DeploymentSpec.Replicas
+	deployment.Spec.Replicas = syrax.Spec.DeploymentSpec.Replicas
 
-	setDeployOwner(deployment, bastard)
+	setDeployOwner(deployment, syrax)
 
-	if bastard.ObjectMeta.Namespace != "" {
-		deployment.Namespace = bastard.ObjectMeta.Namespace
+	if syrax.ObjectMeta.Namespace != "" {
+		deployment.Namespace = syrax.ObjectMeta.Namespace
 	}
 	deployment.Labels = labels
 
-	deploymentImage := bastard.Spec.DeploymentSpec.Image
+	deploymentImage := syrax.Spec.DeploymentSpec.Image
 
 	containerPorts := []corev1.ContainerPort{}
 
-	if bastard.Spec.ServiceSpec.TargetPort != nil {
-		containerPorts[0].ContainerPort = *bastard.Spec.ServiceSpec.TargetPort
+	if syrax.Spec.ServiceSpec.TargetPort != nil {
+		containerPorts[0].ContainerPort = *syrax.Spec.ServiceSpec.TargetPort
 	}
 	deployment.Spec.Selector = &metav1.LabelSelector{
 		MatchLabels: labels,
@@ -53,7 +53,7 @@ func (r *BastardReconciler) newDeployment(bastard *bastardv1.Bastard, name strin
 				{
 					Name:    utils.ContainerName,
 					Image:   deploymentImage,
-					Command: bastard.Spec.DeploymentSpec.Commands,
+					Command: syrax.Spec.DeploymentSpec.Commands,
 					Ports:   containerPorts,
 				},
 			},
@@ -61,40 +61,40 @@ func (r *BastardReconciler) newDeployment(bastard *bastardv1.Bastard, name strin
 	}
 }
 
-func (r *BastardReconciler) newService(bastard *bastardv1.Bastard, name string, service *corev1.Service) *corev1.Service {
+func (r *SyraxReconciler) newService(syrax *syraxv1.Syrax, name string, service *corev1.Service) *corev1.Service {
 	labels := make(map[string]string)
-	for k, v := range bastard.Spec.Labels {
+	for k, v := range syrax.Spec.Labels {
 		labels[k] = v
 	}
 	labels["dracarys"] = "im-now-the-servant-of-the-white-walkers"
-	labels["uid"] = string(bastard.UID)
+	labels["uid"] = string(syrax.UID)
 
 	service.Name = name
-	serviceType := bastard.Spec.ServiceSpec.ServiceType
+	serviceType := syrax.Spec.ServiceSpec.ServiceType
 
 	if serviceType == "Headless" {
 		serviceType = ""
 	}
 	service.Spec.Type = corev1.ServiceType(serviceType)
 
-	servicePort := bastard.Spec.ServiceSpec.Port
+	servicePort := syrax.Spec.ServiceSpec.Port
 	ports := []corev1.ServicePort{
 		{
 			Port: *servicePort,
 		},
 	}
-	setSvcOwner(service, bastard)
+	setSvcOwner(service, syrax)
 
-	if bastard.ObjectMeta.Namespace != "" {
-		service.Namespace = bastard.ObjectMeta.Namespace
+	if syrax.ObjectMeta.Namespace != "" {
+		service.Namespace = syrax.ObjectMeta.Namespace
 	}
 	service.Labels = labels
 
-	if bastard.Spec.ServiceSpec.NodePort != nil {
-		ports[0].NodePort = *bastard.Spec.ServiceSpec.NodePort
+	if syrax.Spec.ServiceSpec.NodePort != nil {
+		ports[0].NodePort = *syrax.Spec.ServiceSpec.NodePort
 	}
-	if bastard.Spec.ServiceSpec.TargetPort != nil {
-		ports[0].TargetPort.IntVal = *bastard.Spec.ServiceSpec.TargetPort
+	if syrax.Spec.ServiceSpec.TargetPort != nil {
+		ports[0].TargetPort.IntVal = *syrax.Spec.ServiceSpec.TargetPort
 	}
 
 	service.Spec.Ports = ports
@@ -102,10 +102,10 @@ func (r *BastardReconciler) newService(bastard *bastardv1.Bastard, name string, 
 
 	return service
 }
-func (r *BastardReconciler) getDeploymentName(bastard *bastardv1.Bastard) string {
-	UID := bastard.UID
+func (r *SyraxReconciler) getDeploymentName(syrax *syraxv1.Syrax) string {
+	UID := syrax.UID
 	deploymentList := appsv1.DeploymentList{}
-	err := r.List(context.TODO(), &deploymentList, client.InNamespace(bastard.Namespace), client.MatchingLabels{"dracarys": "im-now-the-servant-of-the-white-walkers"})
+	err := r.List(context.TODO(), &deploymentList, client.InNamespace(syrax.Namespace), client.MatchingLabels{"dracarys": "im-now-the-servant-of-the-white-walkers"})
 
 	if err == nil {
 		for _, deployment := range deploymentList.Items {
@@ -115,14 +115,14 @@ func (r *BastardReconciler) getDeploymentName(bastard *bastardv1.Bastard) string
 		}
 	}
 	var deploymentName bytes.Buffer
-	deploymentName.WriteString(ToLowerCase(bastard.Name))
-	if bastard.Spec.DeploymentSpec.Name != "" {
+	deploymentName.WriteString(ToLowerCase(syrax.Name))
+	if syrax.Spec.DeploymentSpec.Name != "" {
 		deploymentName.WriteString("-")
-		deploymentName.WriteString(ToLowerCase(bastard.Spec.DeploymentSpec.Name))
+		deploymentName.WriteString(ToLowerCase(syrax.Spec.DeploymentSpec.Name))
 	}
 
 	for i := 0; i != -1; i++ {
-		name, err := r.deploymentNameIsExist(bastard, deploymentName.String(), int32(i))
+		name, err := r.deploymentNameIsExist(syrax, deploymentName.String(), int32(i))
 		if err == nil {
 			return name
 		}
@@ -131,20 +131,20 @@ func (r *BastardReconciler) getDeploymentName(bastard *bastardv1.Bastard) string
 	return deploymentName.String()
 }
 
-func (r *BastardReconciler) deploymentNameIsExist(bastard *bastardv1.Bastard, name string, cnt int32) (string, error) {
+func (r *SyraxReconciler) deploymentNameIsExist(syrax *syraxv1.Syrax, name string, cnt int32) (string, error) {
 	_name := fmt.Sprintf("%s%s%s", name, "-", String(cnt))
 
-	err := r.Get(context.TODO(), namespcedname.NamespacedName{bastard.Namespace, _name}, &appsv1.Deployment{})
+	err := r.Get(context.TODO(), namespcedname.NamespacedName{syrax.Namespace, _name}, &appsv1.Deployment{})
 	if err != nil {
 		return _name, nil
 	}
 	return "", fmt.Errorf("deployment Name has already occupied")
 
 }
-func (r *BastardReconciler) getServiceName(bastard *bastardv1.Bastard) string {
-	UID := bastard.UID
+func (r *SyraxReconciler) getServiceName(syrax *syraxv1.Syrax) string {
+	UID := syrax.UID
 	serviceList := &corev1.ServiceList{}
-	err := r.List(context.TODO(), serviceList, client.InNamespace(bastard.Namespace), client.MatchingLabels{"dracarys": "im-now-the-servant-of-the-white-walkers"})
+	err := r.List(context.TODO(), serviceList, client.InNamespace(syrax.Namespace), client.MatchingLabels{"dracarys": "im-now-the-servant-of-the-white-walkers"})
 	if err == nil {
 		for _, service := range serviceList.Items {
 			if service.Labels["uid"] == string(UID) {
@@ -153,13 +153,13 @@ func (r *BastardReconciler) getServiceName(bastard *bastardv1.Bastard) string {
 		}
 	}
 
-	svcName := ToLowerCase(bastard.Name)
-	if bastard.Spec.ServiceSpec.Name != "" {
-		svcName = fmt.Sprintf("%s%s%s", svcName, "-", ToLowerCase(bastard.Spec.ServiceSpec.Name))
+	svcName := ToLowerCase(syrax.Name)
+	if syrax.Spec.ServiceSpec.Name != "" {
+		svcName = fmt.Sprintf("%s%s%s", svcName, "-", ToLowerCase(syrax.Spec.ServiceSpec.Name))
 	}
 
 	for i := 0; i != -1; i++ {
-		name, err := r.serviceNameExist(bastard, svcName, int32(i))
+		name, err := r.serviceNameExist(syrax, svcName, int32(i))
 		if err == nil {
 			return name
 		}
@@ -168,9 +168,9 @@ func (r *BastardReconciler) getServiceName(bastard *bastardv1.Bastard) string {
 	return svcName
 }
 
-func (r *BastardReconciler) serviceNameExist(bastard *bastardv1.Bastard, name string, cnt int32) (string, error) {
+func (r *SyraxReconciler) serviceNameExist(syrax *syraxv1.Syrax, name string, cnt int32) (string, error) {
 	_name := fmt.Sprintf("%s%s%s", name, "-", String(cnt))
-	err := r.Get(context.TODO(), namespcedname.NamespacedName{bastard.Namespace, _name}, &corev1.Service{})
+	err := r.Get(context.TODO(), namespcedname.NamespacedName{syrax.Namespace, _name}, &corev1.Service{})
 
 	if err != nil {
 		return _name, nil
@@ -179,25 +179,25 @@ func (r *BastardReconciler) serviceNameExist(bastard *bastardv1.Bastard, name st
 
 }
 
-func ifDeployUpdated(bastard *bastardv1.Bastard, deployment *appsv1.Deployment) bool {
-	if (bastard.Spec.DeploymentSpec.Replicas != nil && *bastard.Spec.DeploymentSpec.Replicas != *deployment.Spec.Replicas) == true {
+func ifDeployUpdated(syrax *syraxv1.Syrax, deployment *appsv1.Deployment) bool {
+	if (syrax.Spec.DeploymentSpec.Replicas != nil && *syrax.Spec.DeploymentSpec.Replicas != *deployment.Spec.Replicas) == true {
 		return true
 	}
 	fmt.Println("\n", len(deployment.OwnerReferences), "\n")
-	if (bastard.Spec.DeploymentSpec.Image != "" && bastard.Spec.DeploymentSpec.Image != deployment.Spec.Template.Spec.Containers[0].Image) ||
-		(bastard.Spec.DeletionPolicy == "WipeOut" && (&deployment.OwnerReferences == nil || len(deployment.OwnerReferences) == 0 || string(deployment.OwnerReferences[0].UID) != string(bastard.UID))) ||
-		(bastard.Spec.DeletionPolicy == "Delete" && &deployment.OwnerReferences != nil) {
+	if (syrax.Spec.DeploymentSpec.Image != "" && syrax.Spec.DeploymentSpec.Image != deployment.Spec.Template.Spec.Containers[0].Image) ||
+		(syrax.Spec.DeletionPolicy == "WipeOut" && (&deployment.OwnerReferences == nil || len(deployment.OwnerReferences) == 0 || string(deployment.OwnerReferences[0].UID) != string(syrax.UID))) ||
+		(syrax.Spec.DeletionPolicy == "Delete" && &deployment.OwnerReferences != nil) {
 		return true
 	}
 	return false
 
 }
-func ifSvcUpdated(bastard *bastardv1.Bastard, service *corev1.Service) bool {
-	if (bastard.Spec.ServiceSpec.Port != nil && *bastard.Spec.ServiceSpec.Port != service.Spec.Ports[0].Port) ||
-		(bastard.Spec.ServiceSpec.NodePort != nil && *bastard.Spec.ServiceSpec.NodePort != service.Spec.Ports[0].NodePort) ||
-		(bastard.Spec.ServiceSpec.TargetPort != nil && *bastard.Spec.ServiceSpec.TargetPort != service.Spec.Ports[0].TargetPort.IntVal) ||
-		(bastard.Spec.DeletionPolicy == "WipeOut" && (&service.OwnerReferences == nil || len(service.OwnerReferences) == 0 || string(service.OwnerReferences[0].UID) != string(bastard.UID))) ||
-		(bastard.Spec.DeletionPolicy == "Delete" && &service.OwnerReferences != nil) {
+func ifSvcUpdated(syrax *syraxv1.Syrax, service *corev1.Service) bool {
+	if (syrax.Spec.ServiceSpec.Port != nil && *syrax.Spec.ServiceSpec.Port != service.Spec.Ports[0].Port) ||
+		(syrax.Spec.ServiceSpec.NodePort != nil && *syrax.Spec.ServiceSpec.NodePort != service.Spec.Ports[0].NodePort) ||
+		(syrax.Spec.ServiceSpec.TargetPort != nil && *syrax.Spec.ServiceSpec.TargetPort != service.Spec.Ports[0].TargetPort.IntVal) ||
+		(syrax.Spec.DeletionPolicy == "WipeOut" && (&service.OwnerReferences == nil || len(service.OwnerReferences) == 0 || string(service.OwnerReferences[0].UID) != string(syrax.UID))) ||
+		(syrax.Spec.DeletionPolicy == "Delete" && &service.OwnerReferences != nil) {
 		return true
 	}
 	return false

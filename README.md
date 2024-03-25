@@ -2,7 +2,7 @@
 Resource Controller(k8s-sigs) creates deployment and service with desired specifications.
 
 ## Description
-You can create a deployment and a service for your kubernetes cluster with Resource Controller(k8s-sigs) with desired specifications. And Resource Controller(k8s-sigs) takes the responsibility to maintain them. Basically it provides a controller for resource of blabla kind and with the creation of this blabla kind a deployment and a service will get created and this service will be act as a gateway for this deployment.
+You can create a deployment and a service for your kubernetes cluster with Resource Controller(k8s-sigs) with desired specifications. And Resource Controller(k8s-sigs) takes the responsibility to maintain them. Basically it provides a controller for resource of Syrax kind and with the creation of this Syrax kind a deployment and a service will get created and this service will be act as a gateway for this deployment.
 
 ## Getting Started
 

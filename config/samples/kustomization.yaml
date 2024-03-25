@@ -1,4 +1,0 @@
-## Append samples of your project ##
-resources:
-- targaryen_v1_bastard.yaml
-#+kubebuilder:scaffold:manifestskustomizesamples

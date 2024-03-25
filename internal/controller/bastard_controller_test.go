@@ -30,7 +30,7 @@ import (
 	targaryenv1 "resource.controller.sigs/resource-controller-k8s-sigs/api/v1"
 )
 
-var _ = Describe("Bastard Controller", func() {
+var _ = Describe("Syrax Controller", func() {
 	Context("When reconciling a resource", func() {
 		const resourceName = "test-resource"
 
@@ -40,13 +40,13 @@ var _ = Describe("Bastard Controller", func() {
 			Name:      resourceName,
 			Namespace: "default", // TODO(user):Modify as needed
 		}
-		bastard := &targaryenv1.Bastard{}
+		syrax := &targaryenv1.Syrax{}
 
 		BeforeEach(func() {
-			By("creating the custom resource for the Kind Bastard")
-			err := k8sClient.Get(ctx, typeNamespacedName, bastard)
+			By("creating the custom resource for the Kind Syrax")
+			err := k8sClient.Get(ctx, typeNamespacedName, syrax)
 			if err != nil && errors.IsNotFound(err) {
-				resource := &targaryenv1.Bastard{
+				resource := &targaryenv1.Syrax{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      resourceName,
 						Namespace: "default",
@@ -59,16 +59,16 @@ var _ = Describe("Bastard Controller", func() {
 
 		AfterEach(func() {
 			// TODO(user): Cleanup logic after each test, like removing the resource instance.
-			resource := &targaryenv1.Bastard{}
+			resource := &targaryenv1.Syrax{}
 			err := k8sClient.Get(ctx, typeNamespacedName, resource)
 			Expect(err).NotTo(HaveOccurred())
 
-			By("Cleanup the specific resource instance Bastard")
+			By("Cleanup the specific resource instance Syrax")
 			Expect(k8sClient.Delete(ctx, resource)).To(Succeed())
 		})
 		It("should successfully reconcile the resource", func() {
 			By("Reconciling the created resource")
-			controllerReconciler := &BastardReconciler{
+			controllerReconciler := &SyraxReconciler{
 				Client: k8sClient,
 				Scheme: k8sClient.Scheme(),
 			}
