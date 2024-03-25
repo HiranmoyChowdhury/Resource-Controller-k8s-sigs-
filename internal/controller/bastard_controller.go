@@ -79,8 +79,6 @@ func (r *SyraxReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 	deploymentName := r.getDeploymentName(syrax)
 	serviceName := r.getServiceName(syrax)
-	fmt.Println()
-	fmt.Println(deploymentName, serviceName)
 
 	deployment := &appsv1.Deployment{}
 	if err = r.Get(context.TODO(), namespcedname.NamespacedName{req.Namespace, deploymentName}, deployment); err != nil {
@@ -91,9 +89,6 @@ func (r *SyraxReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		r.Recorder.Event(syrax, "Warning", err.Error(), fmt.Sprintf("the deployment for syrax kind with name %s is not present and can't be created", syrax.Name))
 		return ctrl.Result{}, nil
 	}
-
-	fmt.Println()
-	fmt.Println(deploymentName, serviceName)
 
 	service := &corev1.Service{}
 	if err = r.Get(context.TODO(), namespcedname.NamespacedName{req.Namespace, serviceName}, service); err != nil {
@@ -106,14 +101,8 @@ func (r *SyraxReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{}, nil
 	}
 
-	fmt.Println()
-	fmt.Println(deploymentName, serviceName)
-
 	if ifDeployUpdated(syrax, deployment) == true {
 		log.Log.Info("Update deployment resource")
-		fmt.Println()
-		fmt.Println("hi")
-		fmt.Println()
 		r.newDeployment(syrax, deploymentName, deployment)
 		err = r.Update(context.TODO(), deployment)
 	}
@@ -156,7 +145,6 @@ func (r *SyraxReconciler) updateSyraxStatus(syrax *syraxv1.Syrax, deployment *ap
 
 var (
 	jobOwnerKey = ".metadata.controller"
-	apiGVStr    = targaryenv1.GroupVersion.String()
 )
 
 func (r *SyraxReconciler) SetupWithManager(mgr ctrl.Manager) error {

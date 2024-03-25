@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    dracarys: im-now-the-servant-of-the-white-walkers
+    uid: da31936e-69e6-4b1e-a79a-3c4ef093ff5b
+  name: book-bazar-01--john-snow--0
+  namespace: default
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      dracarys: im-now-the-servant-of-the-white-walkers
+      uid: da31936e-69e6-4b1e-a79a-3c4ef093ff5b
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        dracarys: im-now-the-servant-of-the-white-walkers
+        uid: da31936e-69e6-4b1e-a79a-3c4ef093ff5b
+    spec:
+      containers:
+        - command:
+            - /root/binary
+            - start
+          image: hiranmoy36/book-bazar
+          imagePullPolicy: Always
+          name: ros
+          resources: {}
+      restartPolicy: Always
