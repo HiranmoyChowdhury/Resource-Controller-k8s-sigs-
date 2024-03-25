@@ -75,10 +75,12 @@ func (r *BastardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, nil
 
 	}
-	fillTheGapFirst(bastard)
+	setDefaultFields(bastard)
 
-	deploymentName := r.GetDeploymentName(bastard)
-	serviceName := r.GetServiceName(bastard)
+	deploymentName := r.getDeploymentName(bastard)
+	serviceName := r.getServiceName(bastard)
+	fmt.Println()
+	fmt.Println(deploymentName, serviceName)
 
 	deployment := &appsv1.Deployment{}
 	if err = r.Get(context.TODO(), namespcedname.NamespacedName{req.Namespace, deploymentName}, deployment); err != nil {
@@ -89,6 +91,9 @@ func (r *BastardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		r.Recorder.Event(bastard, "Warning", err.Error(), fmt.Sprintf("the deployment for bastard kind with name %s is not present and can't be created", bastard.Name))
 		return ctrl.Result{}, nil
 	}
+
+	fmt.Println()
+	fmt.Println(deploymentName, serviceName)
 
 	service := &corev1.Service{}
 	if err = r.Get(context.TODO(), namespcedname.NamespacedName{req.Namespace, serviceName}, service); err != nil {
@@ -101,8 +106,14 @@ func (r *BastardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, nil
 	}
 
-	if deploymentSpecGotUpdate(bastard, deployment) == true {
+	fmt.Println()
+	fmt.Println(deploymentName, serviceName)
+
+	if ifDeployUpdated(bastard, deployment) == true {
 		log.Log.Info("Update deployment resource")
+		fmt.Println()
+		fmt.Println("hi")
+		fmt.Println()
 		r.newDeployment(bastard, deploymentName, deployment)
 		err = r.Update(context.TODO(), deployment)
 	}
@@ -113,7 +124,7 @@ func (r *BastardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		r.Recorder.Event(bastard, "Normal", "", fmt.Sprintf("the deployment for bastard kind with name %s is successfully updated", bastard.Name))
 	}
 
-	if serviceSpecGotUpdate(bastard, service) {
+	if ifSvcUpdated(bastard, service) {
 		log.Log.Info("Update service resource")
 		r.newService(bastard, serviceName, service)
 		err = r.Update(context.TODO(), service)
@@ -142,8 +153,53 @@ func (r *BastardReconciler) updateBastardStatus(bastard *bastardv1.Bastard, depl
 
 	return err
 }
+
+var (
+	jobOwnerKey = ".metadata.controller"
+	apiGVStr    = targaryenv1.GroupVersion.String()
+)
+
 func (r *BastardReconciler) SetupWithManager(mgr ctrl.Manager) error {
+
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &appsv1.Deployment{}, jobOwnerKey, func(rawObj client.Object) []string {
+		// grab the job object, extract the owner...
+		depu := rawObj.(*appsv1.Deployment)
+
+		if depu.Labels == nil || len(depu.Labels) == 0 {
+			return nil
+		}
+		if val, present := depu.Labels["dracarys"]; present == false || val != "im-now-the-servant-of-the-white-walkers" {
+			return nil
+		}
+		if _, present := depu.Labels["uid"]; present == false {
+			return nil
+		}
+
+		return []string{depu.Labels["uid"]}
+	}); err != nil {
+		return err
+	}
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &corev1.Service{}, jobOwnerKey, func(rawObj client.Object) []string {
+		// grab the job object, extract the owner...
+		svc := rawObj.(*corev1.Service)
+		if svc.Labels == nil || len(svc.Labels) == 0 {
+			return nil
+		}
+		if val, present := svc.Labels["dracarys"]; present == false || val != "im-now-the-servant-of-the-white-walkers" {
+			return nil
+		}
+		if _, present := svc.Labels["uid"]; present == false {
+			return nil
+		}
+
+		return []string{svc.Labels["uid"]}
+	}); err != nil {
+		return err
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&targaryenv1.Bastard{}).
+		Owns(&appsv1.Deployment{}).
+		Owns(&corev1.Service{}).
 		Complete(r)
 }

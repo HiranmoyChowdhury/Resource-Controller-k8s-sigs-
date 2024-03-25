@@ -27,10 +27,7 @@ func (r *BastardReconciler) newDeployment(bastard *bastardv1.Bastard, name strin
 
 	deployment.Spec.Replicas = bastard.Spec.DeploymentSpec.Replicas
 
-	deployment.OwnerReferences = []metav1.OwnerReference{
-		*metav1.NewControllerRef(bastard, bastardv1.GroupVersion.WithKind(bastard.Kind)),
-	}
-	playWithOwner(&deployment.OwnerReferences, bastard)
+	setDeployOwner(deployment, bastard)
 
 	if bastard.ObjectMeta.Namespace != "" {
 		deployment.Namespace = bastard.ObjectMeta.Namespace
@@ -86,11 +83,7 @@ func (r *BastardReconciler) newService(bastard *bastardv1.Bastard, name string, 
 			Port: *servicePort,
 		},
 	}
-
-	service.OwnerReferences = []metav1.OwnerReference{
-		*metav1.NewControllerRef(bastard, bastardv1.GroupVersion.WithKind(bastard.Kind)),
-	}
-	playWithOwner(&service.OwnerReferences, bastard)
+	setSvcOwner(service, bastard)
 
 	if bastard.ObjectMeta.Namespace != "" {
 		service.Namespace = bastard.ObjectMeta.Namespace
@@ -109,7 +102,7 @@ func (r *BastardReconciler) newService(bastard *bastardv1.Bastard, name string, 
 
 	return service
 }
-func (r *BastardReconciler) GetDeploymentName(bastard *bastardv1.Bastard) string {
+func (r *BastardReconciler) getDeploymentName(bastard *bastardv1.Bastard) string {
 	UID := bastard.UID
 	deploymentList := appsv1.DeploymentList{}
 	err := r.List(context.TODO(), &deploymentList, client.InNamespace(bastard.Namespace), client.MatchingLabels{"dracarys": "im-now-the-servant-of-the-white-walkers"})
@@ -148,7 +141,7 @@ func (r *BastardReconciler) deploymentNameIsExist(bastard *bastardv1.Bastard, na
 	return "", fmt.Errorf("deployment Name has already occupied")
 
 }
-func (r *BastardReconciler) GetServiceName(bastard *bastardv1.Bastard) string {
+func (r *BastardReconciler) getServiceName(bastard *bastardv1.Bastard) string {
 	UID := bastard.UID
 	serviceList := &corev1.ServiceList{}
 	err := r.List(context.TODO(), serviceList, client.InNamespace(bastard.Namespace), client.MatchingLabels{"dracarys": "im-now-the-servant-of-the-white-walkers"})
@@ -166,7 +159,7 @@ func (r *BastardReconciler) GetServiceName(bastard *bastardv1.Bastard) string {
 	}
 
 	for i := 0; i != -1; i++ {
-		name, err := r.ServiceNameExist(bastard, svcName, int32(i))
+		name, err := r.serviceNameExist(bastard, svcName, int32(i))
 		if err == nil {
 			return name
 		}
@@ -175,7 +168,7 @@ func (r *BastardReconciler) GetServiceName(bastard *bastardv1.Bastard) string {
 	return svcName
 }
 
-func (r *BastardReconciler) ServiceNameExist(bastard *bastardv1.Bastard, name string, cnt int32) (string, error) {
+func (r *BastardReconciler) serviceNameExist(bastard *bastardv1.Bastard, name string, cnt int32) (string, error) {
 	_name := fmt.Sprintf("%s%s%s", name, "-", String(cnt))
 	err := r.Get(context.TODO(), namespcedname.NamespacedName{bastard.Namespace, _name}, &corev1.Service{})
 
@@ -186,24 +179,25 @@ func (r *BastardReconciler) ServiceNameExist(bastard *bastardv1.Bastard, name st
 
 }
 
-func deploymentSpecGotUpdate(bastard *bastardv1.Bastard, deployment *appsv1.Deployment) bool {
+func ifDeployUpdated(bastard *bastardv1.Bastard, deployment *appsv1.Deployment) bool {
 	if (bastard.Spec.DeploymentSpec.Replicas != nil && *bastard.Spec.DeploymentSpec.Replicas != *deployment.Spec.Replicas) == true {
 		return true
 	}
+	fmt.Println("\n", len(deployment.OwnerReferences), "\n")
 	if (bastard.Spec.DeploymentSpec.Image != "" && bastard.Spec.DeploymentSpec.Image != deployment.Spec.Template.Spec.Containers[0].Image) ||
-		(bastard.Spec.DeletionPolicy == "WipeOut" && *deployment.OwnerReferences[0].BlockOwnerDeletion == false) ||
-		(bastard.Spec.DeletionPolicy == "Delete" && *deployment.OwnerReferences[0].BlockOwnerDeletion == true) {
+		(bastard.Spec.DeletionPolicy == "WipeOut" && (&deployment.OwnerReferences == nil || len(deployment.OwnerReferences) == 0 || string(deployment.OwnerReferences[0].UID) != string(bastard.UID))) ||
+		(bastard.Spec.DeletionPolicy == "Delete" && &deployment.OwnerReferences != nil) {
 		return true
 	}
 	return false
 
 }
-func serviceSpecGotUpdate(bastard *bastardv1.Bastard, service *corev1.Service) bool {
+func ifSvcUpdated(bastard *bastardv1.Bastard, service *corev1.Service) bool {
 	if (bastard.Spec.ServiceSpec.Port != nil && *bastard.Spec.ServiceSpec.Port != service.Spec.Ports[0].Port) ||
 		(bastard.Spec.ServiceSpec.NodePort != nil && *bastard.Spec.ServiceSpec.NodePort != service.Spec.Ports[0].NodePort) ||
 		(bastard.Spec.ServiceSpec.TargetPort != nil && *bastard.Spec.ServiceSpec.TargetPort != service.Spec.Ports[0].TargetPort.IntVal) ||
-		(bastard.Spec.DeletionPolicy == "WipeOut" && *service.OwnerReferences[0].BlockOwnerDeletion == false) ||
-		(bastard.Spec.DeletionPolicy == "Delete" && *service.OwnerReferences[0].BlockOwnerDeletion == true) {
+		(bastard.Spec.DeletionPolicy == "WipeOut" && (&service.OwnerReferences == nil || len(service.OwnerReferences) == 0 || string(service.OwnerReferences[0].UID) != string(bastard.UID))) ||
+		(bastard.Spec.DeletionPolicy == "Delete" && &service.OwnerReferences != nil) {
 		return true
 	}
 	return false
@@ -240,4 +234,17 @@ func ToLowerCase(s string) string {
 		}
 	}
 	return result + "-"
+}
+func getNameExclSerial(name string) string {
+	var begin int = 0
+	var end int = len(name) - 1
+	for end >= 0 && (name[end] == '-' || (name[end] >= '0' && name[end] <= '9')) {
+		end--
+	}
+	var result string = ""
+	for begin <= end {
+		result = fmt.Sprintf("%s%s", result, name[begin])
+		begin++
+	}
+	return result
 }
