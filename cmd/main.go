@@ -113,6 +113,7 @@ func main() {
 	if err = (&controller.SyraxReconciler{
 		Client:   mgr.GetClient(),
 		Scheme:   mgr.GetScheme(),
+		Cache:    mgr.GetCache(),
 		Recorder: mgr.GetEventRecorderFor("Syrax-controller"),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Syrax")

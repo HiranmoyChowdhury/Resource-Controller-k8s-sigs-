@@ -22,21 +22,30 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	namespcedname "k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/record"
 	syraxv1 "resource.controller.sigs/resource-controller-k8s-sigs/api/v1"
 	targaryenv1 "resource.controller.sigs/resource-controller-k8s-sigs/api/v1"
+	"resource.controller.sigs/resource-controller-k8s-sigs/utils"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler" // Required for Watching
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate" // Required for Watching
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 // SyraxReconciler reconciles a Syrax object
 type SyraxReconciler struct {
 	client.Client
 	SubRCClient client.SubResourceClient
+	Cache       cache.Cache
 	Scheme      *runtime.Scheme
 	Recorder    record.EventRecorder
 }
@@ -64,6 +73,7 @@ func (r *SyraxReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 	syrax := &syraxv1.Syrax{}
 	err := r.Get(context.TODO(), req.NamespacedName, syrax)
+	fmt.Println(req.Name, req.Namespace)
 
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -132,6 +142,7 @@ func (r *SyraxReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	}
 
 	r.Recorder.Event(syrax, "Normal", "", fmt.Sprintf("for syrax kind with name %s everything is fine", syrax.Name))
+
 	return ctrl.Result{}, nil
 }
 func (r *SyraxReconciler) updateSyraxStatus(syrax *syraxv1.Syrax, deployment *appsv1.Deployment, service *corev1.Service) error {
@@ -162,7 +173,6 @@ func (r *SyraxReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		if _, present := depu.Labels["uid"]; present == false {
 			return nil
 		}
-
 		return []string{depu.Labels["uid"]}
 	}); err != nil {
 		return err
@@ -189,5 +199,36 @@ func (r *SyraxReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&targaryenv1.Syrax{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
+		Watches(
+			&appsv1.Deployment{},
+			handler.EnqueueRequestsFromMapFunc(r.findObjectsForSyrax),
+			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
+		).
+		Watches(
+			&corev1.Service{},
+			handler.EnqueueRequestsFromMapFunc(r.findObjectsForSyrax),
+			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
+		).
 		Complete(r)
+}
+func (r *SyraxReconciler) findObjectsForSyrax(ctx context.Context, obj client.Object) []reconcile.Request {
+	attachedDeployments := &appsv1.DeploymentList{}
+	listOps := &client.ListOptions{
+		LabelSelector: labels.SelectorFromValidatedSet(utils.DefaultLabel),
+	}
+	err := r.List(ctx, attachedDeployments, listOps)
+	if err != nil {
+		return []reconcile.Request{}
+	}
+
+	requests := make([]reconcile.Request, len(attachedDeployments.Items))
+	for i, item := range attachedDeployments.Items {
+		requests[i] = reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Name:      item.GetName(),
+				Namespace: item.GetNamespace(),
+			},
+		}
+	}
+	return requests
 }

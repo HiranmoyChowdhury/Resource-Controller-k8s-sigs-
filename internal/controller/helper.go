@@ -106,7 +106,6 @@ func (r *SyraxReconciler) getDeploymentName(syrax *syraxv1.Syrax) string {
 	UID := syrax.UID
 	deploymentList := appsv1.DeploymentList{}
 	err := r.List(context.TODO(), &deploymentList, client.InNamespace(syrax.Namespace), client.MatchingLabels{"dracarys": "im-now-the-servant-of-the-white-walkers"})
-
 	if err == nil {
 		for _, deployment := range deploymentList.Items {
 			if deployment.Labels["uid"] == string(UID) {

@@ -1,17 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  generation: 1
   labels:
     dracarys: im-now-the-servant-of-the-white-walkers
-    uid: da31936e-69e6-4b1e-a79a-3c4ef093ff5b
+    uid: d1fab901-fd47-4179-8a69-072a4f454fea
   name: book-bazar-01--john-snow--0
   namespace: default
 spec:
+  progressDeadlineSeconds: 600
   replicas: 5
+  revisionHistoryLimit: 10
   selector:
     matchLabels:
       dracarys: im-now-the-servant-of-the-white-walkers
-      uid: da31936e-69e6-4b1e-a79a-3c4ef093ff5b
+      uid: d1fab901-fd47-4179-8a69-072a4f454fea
   strategy:
     rollingUpdate:
       maxSurge: 25%
@@ -19,9 +22,10 @@ spec:
     type: RollingUpdate
   template:
     metadata:
+      creationTimestamp: null
       labels:
         dracarys: im-now-the-servant-of-the-white-walkers
-        uid: da31936e-69e6-4b1e-a79a-3c4ef093ff5b
+        uid: d1fab901-fd47-4179-8a69-072a4f454fea
     spec:
       containers:
         - command:
@@ -31,4 +35,10 @@ spec:
           imagePullPolicy: Always
           name: ros
           resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
       restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30

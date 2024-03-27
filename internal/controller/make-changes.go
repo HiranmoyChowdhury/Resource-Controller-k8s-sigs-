@@ -19,18 +19,14 @@ func setDefaultFields(syrax *syraxv1.Syrax) {
 	}
 }
 func setDeployOwner(deployment *appsv1.Deployment, syrax *syraxv1.Syrax) {
-	if syrax.Spec.DeletionPolicy == "WipeOut" {
 
-		deployment.OwnerReferences = []metav1.OwnerReference{
-			*metav1.NewControllerRef(syrax, syraxv1.GroupVersion.WithKind(syrax.Kind)),
-		}
+	deployment.OwnerReferences = []metav1.OwnerReference{
+		*metav1.NewControllerRef(syrax, syraxv1.GroupVersion.WithKind(syrax.Kind)),
 	}
 }
 func setSvcOwner(service *corev1.Service, syrax *syraxv1.Syrax) {
-	if syrax.Spec.DeletionPolicy == "WipeOut" {
-		service.OwnerReferences = []metav1.OwnerReference{
-			*metav1.NewControllerRef(syrax, syraxv1.GroupVersion.WithKind(syrax.Kind)),
-		}
+	service.OwnerReferences = []metav1.OwnerReference{
+		*metav1.NewControllerRef(syrax, syraxv1.GroupVersion.WithKind(syrax.Kind)),
 	}
 
 }
