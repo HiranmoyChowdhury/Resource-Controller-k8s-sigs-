@@ -5,7 +5,7 @@ metadata:
 spec:
   deletionPolicy: Delete
   deploymentSpec:
-    replicas: 2
+    replicas: 3
     name: john-snow
     image: hiranmoy36/book-bazar
     commands: ["/root/binary","start"]

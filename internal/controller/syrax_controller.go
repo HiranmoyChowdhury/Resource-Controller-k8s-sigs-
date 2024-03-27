@@ -22,9 +22,8 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/labels"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	namespcedname "k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/record"
@@ -35,10 +34,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/handler" // Required for Watching
+	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/predicate" // Required for Watching
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"time"
 )
 
 // SyraxReconciler reconciles a Syrax object
@@ -73,18 +71,23 @@ func (r *SyraxReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 	syrax := &syraxv1.Syrax{}
 	err := r.Get(context.TODO(), req.NamespacedName, syrax)
-	fmt.Println(req.Name, req.Namespace)
-
 	if err != nil {
 		if errors.IsNotFound(err) {
 			utilruntime.HandleError(fmt.Errorf("syrax '%s' in work queue no longer exists", req.NamespacedName))
 			return ctrl.Result{}, nil
 
 		}
-
 		return ctrl.Result{}, nil
-
 	}
+
+	if ctrlutil.ContainsFinalizer(syrax, utils.DefaultFinalizer) == false && syrax.Spec.DeletionPolicy == "Delete" {
+		ctrlutil.AddFinalizer(syrax, utils.DefaultFinalizer)
+		err = r.Update(context.TODO(), syrax)
+	}
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	setDefaultFields(syrax)
 
 	deploymentName := r.getDeploymentName(syrax)
@@ -134,6 +137,11 @@ func (r *SyraxReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	} else {
 		r.Recorder.Event(syrax, "Normal", "", fmt.Sprintf("the service for syrax kind with name %s is successfully updated", syrax.Name))
 	}
+	if syrax.DeletionTimestamp != nil {
+		ctrlutil.RemoveFinalizer(syrax, utils.DefaultFinalizer)
+		time.Sleep(20 * time.Millisecond)
+		r.Update(context.TODO(), syrax)
+	}
 
 	err = r.updateSyraxStatus(syrax, deployment, service)
 	if err != nil {
@@ -150,8 +158,8 @@ func (r *SyraxReconciler) updateSyraxStatus(syrax *syraxv1.Syrax, deployment *ap
 	syrax.Status.AvailableReplicas = &deployment.Status.AvailableReplicas
 
 	err := r.Status().Update(context.TODO(), syrax)
-
 	return err
+
 }
 
 var (
@@ -161,74 +169,39 @@ var (
 func (r *SyraxReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &appsv1.Deployment{}, jobOwnerKey, func(rawObj client.Object) []string {
-		// grab the job object, extract the owner...
 		depu := rawObj.(*appsv1.Deployment)
 
-		if depu.Labels == nil || len(depu.Labels) == 0 {
+		owner := metav1.GetControllerOf(depu)
+		if owner == nil {
 			return nil
 		}
-		if val, present := depu.Labels["dracarys"]; present == false || val != "im-now-the-servant-of-the-white-walkers" {
+		// ...make sure it's a CronJob...
+		if owner.Kind != utils.Kind {
 			return nil
 		}
-		if _, present := depu.Labels["uid"]; present == false {
-			return nil
-		}
-		return []string{depu.Labels["uid"]}
+		return []string{owner.Name}
 	}); err != nil {
 		return err
 	}
 	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &corev1.Service{}, jobOwnerKey, func(rawObj client.Object) []string {
 		// grab the job object, extract the owner...
 		svc := rawObj.(*corev1.Service)
-		if svc.Labels == nil || len(svc.Labels) == 0 {
+		owner := metav1.GetControllerOf(svc)
+		if owner == nil {
 			return nil
 		}
-		if val, present := svc.Labels["dracarys"]; present == false || val != "im-now-the-servant-of-the-white-walkers" {
+		// ...make sure it's a CronJob...
+		if owner.Kind != utils.Kind {
 			return nil
 		}
-		if _, present := svc.Labels["uid"]; present == false {
-			return nil
-		}
-
-		return []string{svc.Labels["uid"]}
+		return []string{owner.Name}
 	}); err != nil {
 		return err
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&targaryenv1.Syrax{}).
-		Owns(&appsv1.Deployment{}).
-		Owns(&corev1.Service{}).
-		Watches(
-			&appsv1.Deployment{},
-			handler.EnqueueRequestsFromMapFunc(r.findObjectsForSyrax),
-			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
-		).
-		Watches(
-			&corev1.Service{},
-			handler.EnqueueRequestsFromMapFunc(r.findObjectsForSyrax),
-			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
-		).
+		Owns(&appsv1.Deployment{}, builder.MatchEveryOwner).
+		Owns(&corev1.Service{}, builder.MatchEveryOwner).
 		Complete(r)
-}
-func (r *SyraxReconciler) findObjectsForSyrax(ctx context.Context, obj client.Object) []reconcile.Request {
-	attachedDeployments := &appsv1.DeploymentList{}
-	listOps := &client.ListOptions{
-		LabelSelector: labels.SelectorFromValidatedSet(utils.DefaultLabel),
-	}
-	err := r.List(ctx, attachedDeployments, listOps)
-	if err != nil {
-		return []reconcile.Request{}
-	}
-
-	requests := make([]reconcile.Request, len(attachedDeployments.Items))
-	for i, item := range attachedDeployments.Items {
-		requests[i] = reconcile.Request{
-			NamespacedName: types.NamespacedName{
-				Name:      item.GetName(),
-				Namespace: item.GetNamespace(),
-			},
-		}
-	}
-	return requests
 }

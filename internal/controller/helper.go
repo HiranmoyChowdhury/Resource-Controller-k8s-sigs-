@@ -21,13 +21,12 @@ func (r *SyraxReconciler) newDeployment(syrax *syraxv1.Syrax, name string, deplo
 		labels[k] = v
 	}
 	labels["dracarys"] = "im-now-the-servant-of-the-white-walkers"
-	labels["uid"] = string(syrax.UID)
 
 	deployment.Name = name
 
 	deployment.Spec.Replicas = syrax.Spec.DeploymentSpec.Replicas
 
-	setDeployOwner(deployment, syrax)
+	setOwner(deployment, syrax)
 
 	if syrax.ObjectMeta.Namespace != "" {
 		deployment.Namespace = syrax.ObjectMeta.Namespace
@@ -67,7 +66,6 @@ func (r *SyraxReconciler) newService(syrax *syraxv1.Syrax, name string, service 
 		labels[k] = v
 	}
 	labels["dracarys"] = "im-now-the-servant-of-the-white-walkers"
-	labels["uid"] = string(syrax.UID)
 
 	service.Name = name
 	serviceType := syrax.Spec.ServiceSpec.ServiceType
@@ -83,7 +81,7 @@ func (r *SyraxReconciler) newService(syrax *syraxv1.Syrax, name string, service 
 			Port: *servicePort,
 		},
 	}
-	setSvcOwner(service, syrax)
+	setOwner(service, syrax)
 
 	if syrax.ObjectMeta.Namespace != "" {
 		service.Namespace = syrax.ObjectMeta.Namespace
@@ -108,7 +106,7 @@ func (r *SyraxReconciler) getDeploymentName(syrax *syraxv1.Syrax) string {
 	err := r.List(context.TODO(), &deploymentList, client.InNamespace(syrax.Namespace), client.MatchingLabels{"dracarys": "im-now-the-servant-of-the-white-walkers"})
 	if err == nil {
 		for _, deployment := range deploymentList.Items {
-			if deployment.Labels["uid"] == string(UID) {
+			if deployment.OwnerReferences != nil && deployment.OwnerReferences[0].UID == UID {
 				return deployment.Name
 			}
 		}
@@ -146,7 +144,7 @@ func (r *SyraxReconciler) getServiceName(syrax *syraxv1.Syrax) string {
 	err := r.List(context.TODO(), serviceList, client.InNamespace(syrax.Namespace), client.MatchingLabels{"dracarys": "im-now-the-servant-of-the-white-walkers"})
 	if err == nil {
 		for _, service := range serviceList.Items {
-			if service.Labels["uid"] == string(UID) {
+			if service.OwnerReferences != nil && service.OwnerReferences[0].UID == UID {
 				return service.Name
 			}
 		}
@@ -182,10 +180,11 @@ func ifDeployUpdated(syrax *syraxv1.Syrax, deployment *appsv1.Deployment) bool {
 	if (syrax.Spec.DeploymentSpec.Replicas != nil && *syrax.Spec.DeploymentSpec.Replicas != *deployment.Spec.Replicas) == true {
 		return true
 	}
-	fmt.Println("\n", len(deployment.OwnerReferences), "\n")
-	if (syrax.Spec.DeploymentSpec.Image != "" && syrax.Spec.DeploymentSpec.Image != deployment.Spec.Template.Spec.Containers[0].Image) ||
-		(syrax.Spec.DeletionPolicy == "WipeOut" && (&deployment.OwnerReferences == nil || len(deployment.OwnerReferences) == 0 || string(deployment.OwnerReferences[0].UID) != string(syrax.UID))) ||
-		(syrax.Spec.DeletionPolicy == "Delete" && &deployment.OwnerReferences != nil) {
+	if syrax.Spec.DeploymentSpec.Image != "" && syrax.Spec.DeploymentSpec.Image != deployment.Spec.Template.Spec.Containers[0].Image {
+		return true
+	}
+	if (deployment.OwnerReferences == nil && syrax.DeletionTimestamp == nil) ||
+		(deployment.OwnerReferences != nil && syrax.DeletionTimestamp != nil) {
 		return true
 	}
 	return false
@@ -195,8 +194,9 @@ func ifSvcUpdated(syrax *syraxv1.Syrax, service *corev1.Service) bool {
 	if (syrax.Spec.ServiceSpec.Port != nil && *syrax.Spec.ServiceSpec.Port != service.Spec.Ports[0].Port) ||
 		(syrax.Spec.ServiceSpec.NodePort != nil && *syrax.Spec.ServiceSpec.NodePort != service.Spec.Ports[0].NodePort) ||
 		(syrax.Spec.ServiceSpec.TargetPort != nil && *syrax.Spec.ServiceSpec.TargetPort != service.Spec.Ports[0].TargetPort.IntVal) ||
-		(syrax.Spec.DeletionPolicy == "WipeOut" && (&service.OwnerReferences == nil || len(service.OwnerReferences) == 0 || string(service.OwnerReferences[0].UID) != string(syrax.UID))) ||
-		(syrax.Spec.DeletionPolicy == "Delete" && &service.OwnerReferences != nil) {
+		(service.Spec.Type != syrax.Spec.ServiceSpec.ServiceType) ||
+		(service.OwnerReferences == nil && syrax.DeletionTimestamp == nil) ||
+		(service.OwnerReferences != nil && syrax.DeletionTimestamp != nil) {
 		return true
 	}
 	return false

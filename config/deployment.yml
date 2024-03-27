@@ -1,31 +1,17 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  generation: 1
-  labels:
-    dracarys: im-now-the-servant-of-the-white-walkers
-    uid: d1fab901-fd47-4179-8a69-072a4f454fea
-  name: book-bazar-01--john-snow--0
+  name: book-bazar-01--john-snow--546
   namespace: default
 spec:
-  progressDeadlineSeconds: 600
   replicas: 5
-  revisionHistoryLimit: 10
   selector:
     matchLabels:
-      dracarys: im-now-the-servant-of-the-white-walkers
-      uid: d1fab901-fd47-4179-8a69-072a4f454fea
-  strategy:
-    rollingUpdate:
-      maxSurge: 25%
-      maxUnavailable: 25%
-    type: RollingUpdate
+      dracary: ghj
   template:
     metadata:
-      creationTimestamp: null
       labels:
-        dracarys: im-now-the-servant-of-the-white-walkers
-        uid: d1fab901-fd47-4179-8a69-072a4f454fea
+        dracary: ghj
     spec:
       containers:
         - command:
@@ -33,12 +19,5 @@ spec:
             - start
           image: hiranmoy36/book-bazar
           imagePullPolicy: Always
-          name: ros
-          resources: {}
-          terminationMessagePath: /dev/termination-log
-          terminationMessagePolicy: File
-      dnsPolicy: ClusterFirst
+          name: ros2
       restartPolicy: Always
-      schedulerName: default-scheduler
-      securityContext: {}
-      terminationGracePeriodSeconds: 30
